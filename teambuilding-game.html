@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>チームタイプ診断 - あなたのチーム内の役割を発見！</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Noto Sans JP', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            padding: 40px;
+            max-width: 600px;
+            width: 100%;
+            animation: slideIn 0.5s ease-out;
+        }
+        
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 28px;
+        }
+        
+        .question {
+            margin-bottom: 30px;
+        }
+        
+        .question h3 {
+            color: #555;
+            margin-bottom: 20px;
+            font-size: 20px;
+        }
+        
+        .options {
+            display: grid;
+            gap: 10px;
+        }
+        
+        .option {
+            background: #f8f9fa;
+            border: 2px solid #e9ecef;
+            border-radius: 10px;
+            padding: 15px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .option:hover {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+            transform: translateX(5px);
+        }
+        
+        .option.selected {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+        
+        .btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            border-radius: 30px;
+            font-size: 18px;
+            cursor: pointer;
+            display: block;
+            margin: 30px auto 0;
+            transition: all 0.3s ease;
+        }
+        
+        .btn:hover {
+            background: #764ba2;
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+        }
+        
+        .btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        
+        .result {
+            text-align: center;
+            animation: fadeIn 0.5s ease-out;
+        }
+        
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+        
+        .result-title {
+            font-size: 32px;
+            color: #667eea;
+            margin-bottom: 20px;
+            font-weight: bold;
+        }
+        
+        .result-description {
+            color: #666;
+            line-height: 1.8;
+            margin-bottom: 30px;
+        }
+        
+        .result-traits {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 20px;
+        }
+        
+        .trait {
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+            color: #555;
+        }
+        
+        .trait-icon {
+            font-size: 24px;
+            margin-right: 10px;
+        }
+        
+        .progress-bar {
+            background: #e9ecef;
+            height: 10px;
+            border-radius: 5px;
+            margin-bottom: 30px;
+            overflow: hidden;
+        }
+        
+        .progress {
+            background: #667eea;
+            height: 100%;
+            border-radius: 5px;
+            transition: width 0.5s ease;
+        }
+        
+        .question-number {
+            text-align: center;
+            color: #999;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div id="quiz-container">
+            <h1>🎯 チームタイプ診断</h1>
+            <div class="progress-bar">
+                <div class="progress" id="progress"></div>
+            </div>
+            <div class="question-number" id="question-number"></div>
+            <div id="question-container"></div>
+            <button class="btn" id="next-btn" disabled>次へ</button>
+        </div>
+        <div id="result-container" style="display: none;"></div>
+    </div>
+
+    <script>
+        const questions = [
+            {
+                question: "チームでプロジェクトを始めるとき、あなたは？",
+                options: [
+                    { text: "まず全体像を描き、ビジョンを共有したい", value: "leader" },
+                    { text: "具体的なタスクを整理し、スケジュールを立てたい", value: "organizer" },
+                    { text: "チームメンバーの強みを理解し、適切に配置したい", value: "connector" },
+                    { text: "新しいアイデアを出し、創造的な解決策を探したい", value: "innovator" }
+                ]
+            },
+            {
+                question: "チームで意見が対立したとき、あなたの対応は？",
+                options: [
+                    { text: "全員の意見を聞いて、最善の方向性を決定する", value: "leader" },
+                    { text: "事実とデータに基づいて、論理的に解決策を提示する", value: "organizer" },
+                    { text: "感情面に配慮しながら、双方の共通点を見つける", value: "connector" },
+                    { text: "新しい視点を提供し、第三の選択肢を提案する", value: "innovator" }
+                ]
+            },
+            {
+                question: "チームミーティングで最も重要だと思うことは？",
+                options: [
+                    { text: "明確な目標と方向性を共有すること", value: "leader" },
+                    { text: "効率的に進行し、具体的なアクションを決めること", value: "organizer" },
+                    { text: "全員が発言でき、心理的安全性があること", value: "connector" },
+                    { text: "創造的なアイデアが生まれる環境であること", value: "innovator" }
+                ]
+            },
+            {
+                question: "あなたがチームに最も貢献できることは？",
+                options: [
+                    { text: "ビジョンを示し、メンバーをモチベートすること", value: "leader" },
+                    { text: "計画を立て、効率的に実行すること", value: "organizer" },
+                    { text: "メンバー間の関係を築き、コミュニケーションを促進すること", value: "connector" },
+                    { text: "新しいアイデアや革新的な解決策を提供すること", value: "innovator" }
+                ]
+            },
+            {
+                question: "チームが困難に直面したとき、あなたは？",
+                options: [
+                    { text: "チームを鼓舞し、前向きな姿勢を保つ", value: "leader" },
+                    { text: "問題を分析し、具体的な解決策を立てる", value: "organizer" },
+                    { text: "メンバーの感情をケアし、団結を保つ", value: "connector" },
+                    { text: "既存の枠を超えた新しいアプローチを探る", value: "innovator" }
+                ]
+            }
+        ];
+
+        const teamTypes = {
+            leader: {
+                title: "🦁 チームリーダー型",
+                description: "あなたはチームに明確な方向性とビジョンを提供する天性のリーダーです。困難な状況でもチームを鼓舞し、前進させる力を持っています。",
+                traits: [
+                    "✨ ビジョンを明確に示す力",
+                    "🎯 戦略的思考と決断力",
+                    "💪 チームをモチベートする能力",
+                    "🌟 信頼を築くカリスマ性"
+                ],
+                advice: "時にはメンバーの声に耳を傾け、共感的なリーダーシップも意識しましょう。"
+            },
+            organizer: {
+                title: "📊 オーガナイザー型",
+                description: "あなたは計画と実行の達人です。複雑なプロジェクトを整理し、効率的に進める能力でチームの生産性を最大化します。",
+                traits: [
+                    "📅 優れた計画立案能力",
+                    "⚡ 効率的なタスク管理",
+                    "📈 データに基づく意思決定",
+                    "✅ 確実な実行力"
+                ],
+                advice: "柔軟性も大切です。時には計画を調整し、創造的なアイデアも取り入れましょう。"
+            },
+            connector: {
+                title: "🤝 コネクター型",
+                description: "あなたはチームの絆を強める接着剤です。メンバー間の関係を築き、心理的安全性の高い環境を作り出します。",
+                traits: [
+                    "💝 高い共感力と傾聴スキル",
+                    "🌈 多様性を活かす力",
+                    "🕊️ 対立を調和に変える能力",
+                    "🌱 信頼関係を築く才能"
+                ],
+                advice: "時には難しい決断も必要です。調和を保ちながらも、明確な方向性を示すことも大切です。"
+            },
+            innovator: {
+                title: "💡 イノベーター型",
+                description: "あなたは創造性と革新の源泉です。既存の枠にとらわれない発想で、チームに新しい可能性をもたらします。",
+                traits: [
+                    "🚀 革新的なアイデア創出力",
+                    "🎨 創造的問題解決能力",
+                    "🔮 未来志向の思考",
+                    "🌟 変化を推進する力"
+                ],
+                advice: "アイデアを実現するために、実行計画も重要です。他のメンバーと協力して、革新を形にしましょう。"
+            }
+        };
+
+        let currentQuestion = 0;
+        let answers = [];
+        let selectedOption = null;
+
+        function showQuestion() {
+            const question = questions[currentQuestion];
+            const questionContainer = document.getElementById('question-container');
+            const questionNumber = document.getElementById('question-number');
+            const progress = document.getElementById('progress');
+            
+            questionNumber.textContent = `質問 ${currentQuestion + 1} / ${questions.length}`;
+            progress.style.width = `${((currentQuestion + 1) / questions.length) * 100}%`;
+            
+            questionContainer.innerHTML = `
+                <div class="question">
+                    <h3>${question.question}</h3>
+                    <div class="options">
+                        ${question.options.map((option, index) => `
+                            <div class="option" data-value="${option.value}" data-index="${index}">
+                                ${option.text}
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+            
+            const options = document.querySelectorAll('.option');
+            options.forEach(option => {
+                option.addEventListener('click', selectOption);
+            });
+            
+            selectedOption = null;
+            document.getElementById('next-btn').disabled = true;
+        }
+
+        function selectOption(e) {
+            const options = document.querySelectorAll('.option');
+            options.forEach(option => option.classList.remove('selected'));
+            
+            e.target.classList.add('selected');
+            selectedOption = e.target.dataset.value;
+            document.getElementById('next-btn').disabled = false;
+        }
+
+        function nextQuestion() {
+            if (selectedOption) {
+                answers.push(selectedOption);
+                currentQuestion++;
+                
+                if (currentQuestion < questions.length) {
+                    showQuestion();
+                } else {
+                    showResult();
+                }
+            }
+        }
+
+        function showResult() {
+            const resultCount = {};
+            answers.forEach(answer => {
+                resultCount[answer] = (resultCount[answer] || 0) + 1;
+            });
+            
+            const dominantType = Object.keys(resultCount).reduce((a, b) => 
+                resultCount[a] > resultCount[b] ? a : b
+            );
+            
+            const result = teamTypes[dominantType];
+            
+            document.getElementById('quiz-container').style.display = 'none';
+            document.getElementById('result-container').style.display = 'block';
+            
+            document.getElementById('result-container').innerHTML = `
+                <div class="result">
+                    <h2 class="result-title">${result.title}</h2>
+                    <p class="result-description">${result.description}</p>
+                    <div class="result-traits">
+                        <h3 style="margin-bottom: 20px; color: #667eea;">あなたの強み</h3>
+                        ${result.traits.map(trait => `
+                            <div class="trait">
+                                <span class="trait-icon">${trait.substring(0, 2)}</span>
+                                <span>${trait.substring(2)}</span>
+                            </div>
+                        `).join('')}
+                    </div>
+                    <p style="color: #888; font-style: italic;">${result.advice}</p>
+                    <button class="btn" onclick="location.reload()">もう一度診断する</button>
+                </div>
+            `;
+        }
+
+        document.getElementById('next-btn').addEventListener('click', nextQuestion);
+        
+        // 初期表示
+        showQuestion();
+    </script>
+</body>
+</html>
